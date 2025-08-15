@@ -131,6 +131,10 @@ curl http://localhost:3000/health
 - **Active Storage**: Product → Múltiples imágenes
 - **Through associations**: Product → Clients through Purchases
 
+### Diagrama EDR
+
+<img width="3840" height="3405" alt="Untitled diagram _ Mermaid Chart-2025-08-15-094921" src="https://github.com/user-attachments/assets/071a904e-d2cc-4441-a73d-b2b2e81c4bf3" />
+
 ## 🔐 Autenticación
 
 El sistema utiliza JWT (JSON Web Tokens) para la autenticación de administradores.
