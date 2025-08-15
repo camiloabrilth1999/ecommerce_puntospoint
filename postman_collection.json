@@ -1,0 +1,416 @@
+{
+  "info": {
+    "name": "Ecommerce PuntosPoint API",
+    "description": "Colección de APIs para el sistema de ecommerce desarrollado para PuntosPoint",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Health Status",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Verificar el estado del servidor y servicios"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.token) {",
+                  "        pm.collectionVariables.set('jwt_token', response.token);",
+                  "        console.log('JWT Token saved:', response.token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"administrator\": {\n    \"email\": \"admin@puntospoint.com\",\n    \"password\": \"password123\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Autenticar administrador y obtener JWT token"
+          }
+        },
+        {
+          "name": "Login Manager",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.token) {",
+                  "        pm.collectionVariables.set('jwt_token', response.token);",
+                  "        console.log('JWT Token saved:', response.token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"administrator\": {\n    \"email\": \"manager@puntospoint.com\",\n    \"password\": \"password123\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Autenticar manager y obtener JWT token"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "logout"]
+            },
+            "description": "Cerrar sesión (JWT es stateless, se maneja en cliente)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Most Purchased by Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/most_purchased_by_category",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "most_purchased_by_category"]
+            },
+            "description": "Obtener los productos más comprados por cada categoría"
+          }
+        },
+        {
+          "name": "Top Revenue by Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/top_revenue_by_category",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "top_revenue_by_category"]
+            },
+            "description": "Obtener los 3 productos que más han recaudado ($) por categoría"
+          }
+        },
+        {
+          "name": "Purchases List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/purchases",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "purchases"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Página actual"
+                },
+                {
+                  "key": "per_page",
+                  "value": "25",
+                  "description": "Elementos por página"
+                }
+              ]
+            },
+            "description": "Obtener listado de compras con paginación"
+          }
+        },
+        {
+          "name": "Purchases with Date Filter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/purchases?start_date=2025-01-01&end_date=2025-01-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "purchases"],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2025-01-01",
+                  "description": "Fecha de inicio (YYYY-MM-DD)"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2025-01-31",
+                  "description": "Fecha de fin (YYYY-MM-DD)"
+                }
+              ]
+            },
+            "description": "Obtener compras filtradas por rango de fechas"
+          }
+        },
+        {
+          "name": "Purchases with Category Filter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/purchases?category_id=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "purchases"],
+              "query": [
+                {
+                  "key": "category_id",
+                  "value": "1",
+                  "description": "ID de la categoría"
+                }
+              ]
+            },
+            "description": "Obtener compras filtradas por categoría"
+          }
+        },
+        {
+          "name": "Purchases with Client Filter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/purchases?client_id=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "purchases"],
+              "query": [
+                {
+                  "key": "client_id",
+                  "value": "1",
+                  "description": "ID del cliente"
+                }
+              ]
+            },
+            "description": "Obtener compras filtradas por cliente"
+          }
+        },
+        {
+          "name": "Purchases with Administrator Filter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/purchases?administrator_id=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "purchases"],
+              "query": [
+                {
+                  "key": "administrator_id",
+                  "value": "1",
+                  "description": "ID del administrador"
+                }
+              ]
+            },
+            "description": "Obtener compras de productos creados por un administrador específico"
+          }
+        },
+        {
+          "name": "Purchases by Granularity - Hour",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/purchases_by_granularity?granularity=hour&start_date=2025-01-15&end_date=2025-01-15",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "purchases_by_granularity"],
+              "query": [
+                {
+                  "key": "granularity",
+                  "value": "hour",
+                  "description": "Granularidad: hour, day, week, year"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2025-01-15",
+                  "description": "Fecha de inicio"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2025-01-15",
+                  "description": "Fecha de fin"
+                }
+              ]
+            },
+            "description": "Obtener cantidad de compras agrupadas por hora"
+          }
+        },
+        {
+          "name": "Purchases by Granularity - Day",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/purchases_by_granularity?granularity=day&start_date=2025-01-01&end_date=2025-01-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "purchases_by_granularity"],
+              "query": [
+                {
+                  "key": "granularity",
+                  "value": "day",
+                  "description": "Granularidad: hour, day, week, year"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2025-01-01",
+                  "description": "Fecha de inicio"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2025-01-31",
+                  "description": "Fecha de fin"
+                }
+              ]
+            },
+            "description": "Obtener cantidad de compras agrupadas por día"
+          }
+        },
+        {
+          "name": "Purchases by Granularity - Week",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/purchases_by_granularity?granularity=week&start_date=2025-01-01&end_date=2025-03-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "purchases_by_granularity"],
+              "query": [
+                {
+                  "key": "granularity",
+                  "value": "week",
+                  "description": "Granularidad: hour, day, week, year"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2025-01-01",
+                  "description": "Fecha de inicio"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2025-03-31",
+                  "description": "Fecha de fin"
+                }
+              ]
+            },
+            "description": "Obtener cantidad de compras agrupadas por semana"
+          }
+        },
+        {
+          "name": "Purchases by Granularity - Year",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/analytics/purchases_by_granularity?granularity=year&start_date=2024-01-01&end_date=2025-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "analytics", "purchases_by_granularity"],
+              "query": [
+                {
+                  "key": "granularity",
+                  "value": "year",
+                  "description": "Granularidad: hour, day, week, year"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2024-01-01",
+                  "description": "Fecha de inicio"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2025-12-31",
+                  "description": "Fecha de fin"
+                }
+              ]
+            },
+            "description": "Obtener cantidad de compras agrupadas por año"
+          }
+        }
+      ]
+    }
+  ]
+}

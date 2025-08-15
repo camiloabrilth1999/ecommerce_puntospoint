@@ -1,0 +1,43 @@
+📊 REPORTE DIARIO DE COMPRAS
+================================
+
+Fecha: <%= @date.strftime('%A, %d de %B de %Y') %>
+
+📈 RESUMEN EJECUTIVO
+====================
+• Compras Totales: <%= @total_purchases %>
+• Ingresos Totales: $<%= number_with_precision(@total_revenue, precision: 0, delimiter: '.') %>
+• Unidades Vendidas: <%= @products_sold.values.sum %>
+
+<% if @purchases.any? %>
+🏆 TOP 5 PRODUCTOS MÁS VENDIDOS
+================================
+<% if @top_products.any? %>
+<% @top_products.each_with_index do |(product_info, purchase_count), index| %>
+<%= index + 1 %>. <%= product_info[0] %>
+   - Compras: <%= purchase_count %>
+   - Unidades vendidas: <%= @products_sold[product_info[0]] || 0 %>
+
+<% end %>
+<% else %>
+No hay datos de productos para mostrar.
+<% end %>
+
+📝 DETALLE DE COMPRAS
+=====================
+<% @purchases.each do |purchase| %>
+• <%= purchase.purchase_date.strftime('%H:%M') %> - <%= purchase.client.name %>
+  Producto: <%= purchase.product.name %>
+  Cantidad: <%= purchase.quantity %> | Total: $<%= number_with_precision(purchase.total_amount, precision: 0, delimiter: '.') %>
+  Estado: <%= purchase.status.capitalize %>
+
+<% end %>
+<% else %>
+📭 SIN ACTIVIDAD
+=================
+No se registraron compras en la fecha <%= @date.strftime('%d/%m/%Y') %>
+
+<% end %>
+---
+Reporte generado automáticamente por el sistema de ecommerce
+Fecha de generación: <%= Time.current.strftime('%d/%m/%Y %H:%M') %>

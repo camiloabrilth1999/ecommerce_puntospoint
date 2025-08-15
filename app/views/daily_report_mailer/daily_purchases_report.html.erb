@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reporte Diario - <%= @date.strftime('%d/%m/%Y') %></title>
+    <style>
+      body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+      .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+      .header { background-color: #007bff; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
+      .summary { background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+      .summary-item { display: inline-block; margin: 10px 20px; text-align: center; }
+      .summary-value { font-size: 2em; font-weight: bold; color: #007bff; }
+      .summary-label { font-size: 0.9em; color: #6c757d; }
+      .section { margin: 30px 0; }
+      .section h2 { color: #495057; border-bottom: 2px solid #dee2e6; padding-bottom: 10px; }
+      table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+      th, td { padding: 12px; text-align: left; border-bottom: 1px solid #dee2e6; }
+      th { background-color: #f8f9fa; font-weight: bold; }
+      .no-data { text-align: center; color: #6c757d; font-style: italic; padding: 20px; }
+      .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; font-size: 12px; color: #6c757d; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>📊 Reporte Diario de Compras</h1>
+        <p><%= @date.strftime('%A, %d de %B de %Y') %></p>
+      </div>
+
+      <div class="summary">
+        <div class="summary-item">
+          <div class="summary-value"><%= @total_purchases %></div>
+          <div class="summary-label">Compras Totales</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-value">$<%= number_with_precision(@total_revenue, precision: 0, delimiter: '.') %></div>
+          <div class="summary-label">Ingresos Totales</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-value"><%= @products_sold.values.sum %></div>
+          <div class="summary-label">Unidades Vendidas</div>
+        </div>
+      </div>
+
+      <% if @purchases.any? %>
+        <div class="section">
+          <h2>🏆 Top 5 Productos Más Vendidos</h2>
+          <% if @top_products.any? %>
+            <table>
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Compras</th>
+                  <th>Unidades Vendidas</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @top_products.each do |product_info, purchase_count| %>
+                  <tr>
+                    <td><%= product_info[0] %></td>
+                    <td><%= purchase_count %></td>
+                    <td><%= @products_sold[product_info[0]] || 0 %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          <% else %>
+            <div class="no-data">No hay datos de productos para mostrar</div>
+          <% end %>
+        </div>
+
+        <div class="section">
+          <h2>📝 Detalle de Compras</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th>Cliente</th>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Total</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @purchases.each do |purchase| %>
+                <tr>
+                  <td><%= purchase.purchase_date.strftime('%H:%M') %></td>
+                  <td><%= purchase.client.name %></td>
+                  <td><%= purchase.product.name %></td>
+                  <td><%= purchase.quantity %></td>
+                  <td>$<%= number_with_precision(purchase.total_amount, precision: 0, delimiter: '.') %></td>
+                  <td><%= purchase.status.capitalize %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <div class="section">
+          <div class="no-data">
+            <h2>📭 Sin Actividad</h2>
+            <p>No se registraron compras en la fecha <%= @date.strftime('%d/%m/%Y') %></p>
+          </div>
+        </div>
+      <% end %>
+
+      <div class="footer">
+        <p>Reporte generado automáticamente por el sistema de ecommerce</p>
+        <p>Fecha de generación: <%= Time.current.strftime('%d/%m/%Y %H:%M') %></p>
+      </div>
+    </div>
+  </body>
+</html>

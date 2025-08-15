@@ -1,0 +1,120 @@
+erDiagram
+    %% Entidades principales
+    ADMINISTRATOR {
+        bigint id PK
+        string name "NOT NULL"
+        string email "UNIQUE, NOT NULL"
+        string password_digest "NOT NULL"
+        string role "admin/manager"
+        boolean active "DEFAULT true"
+        datetime created_at
+        datetime updated_at
+    }
+
+    CATEGORY {
+        bigint id PK
+        string name "UNIQUE, NOT NULL"
+        text description
+        boolean active "DEFAULT true"
+        bigint administrator_id FK
+        datetime created_at
+        datetime updated_at
+    }
+
+    PRODUCT {
+        bigint id PK
+        string name "NOT NULL"
+        text description "NOT NULL"
+        decimal price "NOT NULL, > 0"
+        string sku "UNIQUE, NOT NULL"
+        integer stock "NOT NULL, >= 0"
+        boolean active "DEFAULT true"
+        bigint administrator_id FK
+        datetime created_at
+        datetime updated_at
+    }
+
+    CLIENT {
+        bigint id PK
+        string name "NOT NULL"
+        string email "UNIQUE, NOT NULL"
+        string phone "NOT NULL"
+        text address
+        boolean active "DEFAULT true"
+        datetime created_at
+        datetime updated_at
+    }
+
+    PURCHASE {
+        bigint id PK
+        bigint product_id FK
+        bigint client_id FK
+        integer quantity "NOT NULL, > 0"
+        decimal unit_price "NOT NULL, > 0"
+        decimal total_amount "NOT NULL, > 0"
+        datetime purchase_date "NOT NULL"
+        string status "pending/completed/cancelled/refunded"
+        datetime created_at
+        datetime updated_at
+    }
+
+    PRODUCT_CATEGORY {
+        bigint id PK
+        bigint product_id FK
+        bigint category_id FK
+        datetime created_at
+        datetime updated_at
+    }
+
+    %% Tablas de Active Storage para imágenes
+    ACTIVE_STORAGE_ATTACHMENTS {
+        bigint id PK
+        string name "NOT NULL"
+        string record_type "NOT NULL"
+        bigint record_id FK
+        bigint blob_id FK
+        datetime created_at
+    }
+
+    ACTIVE_STORAGE_BLOBS {
+        bigint id PK
+        string key "UNIQUE, NOT NULL"
+        string filename "NOT NULL"
+        string content_type
+        text metadata
+        string service_name "NOT NULL"
+        bigint byte_size "NOT NULL"
+        string checksum
+        datetime created_at
+    }
+
+    %% Tabla de PaperTrail para auditoría
+    VERSIONS {
+        bigint id PK
+        string item_type "NOT NULL"
+        bigint item_id FK
+        string event "NOT NULL"
+        string whodunnit
+        text object
+        text object_changes
+        datetime created_at
+    }
+
+    %% Relaciones principales
+    ADMINISTRATOR ||--o{ CATEGORY : "creates"
+    ADMINISTRATOR ||--o{ PRODUCT : "creates"
+    
+    CATEGORY ||--o{ PRODUCT_CATEGORY : "belongs_to"
+    PRODUCT ||--o{ PRODUCT_CATEGORY : "belongs_to"
+    
+    PRODUCT ||--o{ PURCHASE : "purchased_in"
+    CLIENT ||--o{ PURCHASE : "makes"
+    
+    %% Relaciones Active Storage
+    PRODUCT ||--o{ ACTIVE_STORAGE_ATTACHMENTS : "has_images"
+    ACTIVE_STORAGE_ATTACHMENTS ||--|| ACTIVE_STORAGE_BLOBS : "references"
+    
+    %% Relaciones PaperTrail (auditoría)
+    ADMINISTRATOR ||--o{ VERSIONS : "audited_by"
+    CATEGORY ||--o{ VERSIONS : "changes_tracked"
+    PRODUCT ||--o{ VERSIONS : "changes_tracked"

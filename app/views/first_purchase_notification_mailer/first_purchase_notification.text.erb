@@ -1,0 +1,33 @@
+🎉 ¡PRIMERA COMPRA REALIZADA!
+
+Hola <%= @product_creator.name %>,
+
+Te informamos que se ha realizado la PRIMERA COMPRA del producto que creaste.
+
+📦 INFORMACIÓN DEL PRODUCTO
+=============================
+Nombre: <%= @product.name %>
+SKU: <%= @product.sku %>
+Precio: $<%= number_with_precision(@product.price, precision: 0, delimiter: '.') %>
+Categorías: <%= @product.category_names %>
+Stock actual: <%= @product.stock %> unidades
+
+👤 INFORMACIÓN DEL CLIENTE
+===========================
+Nombre: <%= @client.name %>
+Email: <%= @client.email %>
+Teléfono: <%= @client.phone %>
+
+🛒 DETALLES DE LA COMPRA
+=========================
+Cantidad: <%= @purchase.quantity %> unidades
+Precio unitario: $<%= number_with_precision(@purchase.unit_price, precision: 0, delimiter: '.') %>
+Total: $<%= number_with_precision(@purchase.total_amount, precision: 0, delimiter: '.') %>
+Fecha de compra: <%= @purchase.purchase_date.strftime("%d/%m/%Y %H:%M") %>
+Estado: <%= @purchase.status.capitalize %>
+
+¡Felicitaciones por tu primera venta! 🚀
+
+---
+Este email fue enviado automáticamente por el sistema de ecommerce.
+Los demás administradores han recibido una copia de este mensaje.
