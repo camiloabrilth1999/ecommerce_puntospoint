@@ -64,7 +64,7 @@ sudo systemctl start redis-server
 
 ### 1. Clonar el repositorio
 ```bash
-git clone [<repository-url>](https://github.com/camiloabrilth1999/ecommerce_puntospoint.git)
+git clone https://github.com/camiloabrilth1999/ecommerce_puntospoint.git
 cd ecommerce_puntospoint
 ```
 
