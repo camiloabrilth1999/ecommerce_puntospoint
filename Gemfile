@@ -88,4 +88,5 @@ group :test do
   gem "database_cleaner-active_record"
   gem "webmock"
   gem "vcr"
+  gem "concurrent-ruby", "~> 1.2"
 end

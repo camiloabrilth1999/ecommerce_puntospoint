@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_08_15_080554) do
+ActiveRecord::Schema[7.2].define(version: 2025_08_29_063508) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -79,6 +79,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_15_080554) do
     t.bigint "category_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["category_id", "product_id"], name: "idx_product_categories_analytics", comment: "Optimiza joins de analytics entre categorías y productos"
     t.index ["category_id"], name: "index_product_categories_on_category_id"
     t.index ["product_id", "category_id"], name: "index_product_categories_on_product_id_and_category_id", unique: true
     t.index ["product_id"], name: "index_product_categories_on_product_id"
@@ -95,6 +96,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_15_080554) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["active"], name: "index_products_on_active"
+    t.index ["administrator_id", "active"], name: "idx_products_admin_active", comment: "Optimiza filtros por administrador y productos activos"
     t.index ["administrator_id"], name: "index_products_on_administrator_id"
     t.index ["name"], name: "index_products_on_name"
     t.index ["sku"], name: "index_products_on_sku", unique: true
@@ -110,10 +112,14 @@ ActiveRecord::Schema[7.2].define(version: 2025_08_15_080554) do
     t.string "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["client_id", "status"], name: "idx_purchases_client_status", comment: "Optimiza filtros por cliente y estado en analytics"
     t.index ["client_id"], name: "index_purchases_on_client_id"
     t.index ["product_id", "purchase_date"], name: "index_purchases_on_product_id_and_purchase_date"
+    t.index ["product_id", "status", "purchase_date"], name: "idx_purchases_analytics", comment: "Optimiza consultas de analytics por producto, estado y fecha"
     t.index ["product_id"], name: "index_purchases_on_product_id"
+    t.index ["purchase_date", "status"], name: "idx_purchases_date_status", comment: "Optimiza ORDER BY purchase_date en consultas de granularidad"
     t.index ["purchase_date"], name: "index_purchases_on_purchase_date"
+    t.index ["status", "purchase_date"], name: "idx_purchases_granularity", comment: "Optimiza consultas DATE_TRUNC para analytics de granularidad"
     t.index ["status"], name: "index_purchases_on_status"
   end
 

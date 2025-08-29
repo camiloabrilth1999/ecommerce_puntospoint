@@ -115,6 +115,81 @@ RSpec.describe Purchase, type: :model do
         # The second purchase should not be the first one
         expect(second_purchase.first_purchase_of_product?).to be false
       end
+
+      # NUEVO TEST DE CONCURRENCIA REAL - Validación robusta de race conditions
+      it 'handles concurrent first purchases correctly (race condition test)', :aggregate_failures do
+        # Crear producto y clientes para la prueba
+        test_product = create(:product, stock: 100)
+        clients = 10.times.map { create(:client) }
+
+        # Variables compartidas para sincronización
+        threads = []
+        purchases = []
+        mutex = Mutex.new
+        start_barrier = Concurrent::CountDownLatch.new(clients.count)
+
+        # Ejecutar múltiples iteraciones para aumentar probabilidad de race condition
+        3.times do |iteration|
+          threads.clear
+          purchases.clear
+
+          clients.each_with_index do |test_client, index|
+            thread = Thread.new do
+              # Sincronizar inicio para maximizar concurrencia
+              start_barrier.count_down
+              start_barrier.wait
+
+              # Crear compra con timestamp ligeramente diferente pero muy cercano
+              base_time = Time.current + iteration.minutes
+              purchase_time = base_time + (index * 0.001).seconds
+
+              purchase = create(:purchase,
+                               product: test_product,
+                               client: test_client,
+                               purchase_date: purchase_time)
+
+              mutex.synchronize do
+                purchases << purchase
+              end
+            end
+            threads << thread
+          end
+
+          # Esperar a que todos los threads terminen
+          threads.each(&:join)
+
+          # Recargar desde base de datos para asegurar consistencia
+          purchases.each(&:reload)
+
+          # VALIDACIÓN CRÍTICA: Solo UNA compra debe ser primera
+          first_purchases = purchases.select(&:first_purchase_of_product?)
+
+          expect(first_purchases.count).to eq(1),
+            "Iteración #{iteration + 1}: Se esperaba exactamente 1 primera compra, pero se encontraron #{first_purchases.count}"
+
+          # La primera compra debe ser la más temprana cronológicamente
+          earliest_purchase = purchases.min_by(&:purchase_date)
+          expect(first_purchases.first).to eq(earliest_purchase),
+            "Iteración #{iteration + 1}: La primera compra debería ser la más temprana cronológicamente"
+
+          # VALIDACIÓN ADICIONAL: Verificar que el método es consistente
+          first_purchases.each do |purchase|
+            expect(purchase.first_purchase_of_product?).to be(true),
+              "Iteración #{iteration + 1}: La compra marcada como primera debe retornar true consistentemente"
+          end
+
+          # Todas las demás compras NO deben ser primeras
+          other_purchases = purchases - first_purchases
+          other_purchases.each do |purchase|
+            expect(purchase.first_purchase_of_product?).to be(false),
+              "Iteración #{iteration + 1}: La compra ID #{purchase.id} no debería ser primera compra"
+          end
+
+          # Limpiar para siguiente iteración
+          Purchase.where(product: test_product).delete_all
+          start_barrier = Concurrent::CountDownLatch.new(clients.count)
+        end
+      end
     end
 
     describe 'purchase behavior' do

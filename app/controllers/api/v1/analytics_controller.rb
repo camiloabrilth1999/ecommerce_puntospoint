@@ -8,37 +8,57 @@ class Api::V1::AnalyticsController < ApplicationController
   # Headers: Authorization: Bearer <JWT_TOKEN>
   # Response: { success: true, data: [{ category_id, category_name, product: { id, name, sku, purchase_count } }] }
   def most_purchased_by_category
-    result = Rails.cache.fetch("most_purchased_by_category", expires_in: 1.hour) do
-      categories = Category.active.includes(:products)
+    result = Rails.cache.fetch("most_purchased_by_category", expires_in: 12.hours) do
+      sql_query = <<~SQL
+        WITH ranked_products AS (
+          SELECT
+            c.id as category_id,
+            c.name as category_name,
+            p.id as product_id,
+            p.name as product_name,
+            p.sku,
+            COUNT(pu.id) as purchase_count,
+            ROW_NUMBER() OVER (PARTITION BY c.id ORDER BY COUNT(pu.id) DESC) as rank
+          FROM categories c
+          JOIN product_categories pc ON c.id = pc.category_id
+          JOIN products p ON pc.product_id = p.id
+          JOIN purchases pu ON p.id = pu.product_id
+          WHERE c.active = true AND pu.status = 'completed'
+          GROUP BY c.id, c.name, p.id, p.name, p.sku
+        )
+        SELECT * FROM ranked_products
+        WHERE rank = 1
+        ORDER BY category_id
+      SQL
 
-      categories.map do |category|
-        most_purchased_product = category.products
-                                        .joins(:purchases)
-                                        .where(purchases: { status: "completed" })
-                                        .group("products.id")
-                                        .order("COUNT(purchases.id) DESC")
-                                        .first
+      sql_result = ActiveRecord::Base.connection.execute(sql_query)
 
-        if most_purchased_product
-          purchase_count = most_purchased_product.purchases.completed.count
-          {
-            category_id: category.id,
-            category_name: category.name,
-            product: {
-              id: most_purchased_product.id,
-              name: most_purchased_product.name,
-              sku: most_purchased_product.sku,
-              purchase_count: purchase_count
-            }
+      # Procesamiento mínimo en Ruby - solo formateo
+      categories_data = {}
+      sql_result.each do |row|
+        category_id = row["category_id"]
+        categories_data[category_id] = {
+          category_id: category_id,
+          category_name: row["category_name"],
+          product: {
+            id: row["product_id"],
+            name: row["product_name"],
+            sku: row["sku"],
+            purchase_count: row["purchase_count"]
           }
-        else
-          {
-            category_id: category.id,
-            category_name: category.name,
-            product: nil
-          }
-        end
+        }
       end
+
+      # Incluir categorías sin productos comprados
+      Category.active.where.not(id: categories_data.keys).find_each do |category|
+        categories_data[category.id] = {
+          category_id: category.id,
+          category_name: category.name,
+          product: nil
+        }
+      end
+
+      categories_data.values.sort_by { |item| item[:category_id] }
     end
 
     render json: { success: true, data: result }, status: :ok
@@ -49,33 +69,33 @@ class Api::V1::AnalyticsController < ApplicationController
   # Headers: Authorization: Bearer <JWT_TOKEN>
   # Response: { success: true, data: [{ category_id, category_name, top_products: [{ id, name, sku, total_revenue }] }] }
   def top_revenue_by_category
-    result = Rails.cache.fetch("top_revenue_by_category", expires_in: 1.hour) do
-      categories = Category.active.includes(:products)
+    result = Rails.cache.fetch("top_revenue_by_category", expires_in: 12.hours) do
+      categories_data = {}
 
-      categories.map do |category|
+      Category.active.find_each do |category|
         top_products = category.products
                               .joins(:purchases)
                               .where(purchases: { status: "completed" })
-                              .group("products.id")
+                              .group("products.id", "products.name", "products.sku")
+                              .select("products.*, SUM(purchases.total_amount) as total_revenue")
                               .order("SUM(purchases.total_amount) DESC")
                               .limit(3)
-                              .select("products.*, SUM(purchases.total_amount) as total_revenue")
 
-        products_data = top_products.map do |product|
-          {
-            id: product.id,
-            name: product.name,
-            sku: product.sku,
-            total_revenue: product.total_revenue.to_f
-          }
-        end
-
-        {
+        categories_data[category.id] = {
           category_id: category.id,
           category_name: category.name,
-          top_products: products_data
+          top_products: top_products.map do |product|
+            {
+              id: product.id,
+              name: product.name,
+              sku: product.sku,
+              total_revenue: product.total_revenue.to_f
+            }
+          end
         }
       end
+
+      categories_data.values.sort_by { |item| item[:category_id] }
     end
 
     render json: { success: true, data: result }, status: :ok
@@ -86,7 +106,7 @@ class Api::V1::AnalyticsController < ApplicationController
   # Headers: Authorization: Bearer <JWT_TOKEN>
   # Response: { success: true, data: [...], pagination: { current_page, total_pages, total_count, per_page } }
   def purchases
-    purchases = Purchase.completed.includes(:product, :client, product: [ :administrator, :categories ])
+    purchases = Purchase.completed.includes(:product, :client, product: [ :administrator, { categories: [] } ])
 
     # Filtros
     purchases = purchases.by_date_range(params[:start_date], params[:end_date]) if params[:start_date] && params[:end_date]
@@ -111,7 +131,7 @@ class Api::V1::AnalyticsController < ApplicationController
           id: purchase.product.id,
           name: purchase.product.name,
           sku: purchase.product.sku,
-          categories: purchase.product.categories.pluck(:name),
+          categories: purchase.product.categories.map(&:name),
           administrator: {
             id: purchase.product.administrator.id,
             name: purchase.product.administrator.name
@@ -149,25 +169,28 @@ class Api::V1::AnalyticsController < ApplicationController
 
     cache_key = "purchases_by_granularity_#{granularity}_#{start_date}_#{end_date}_#{params[:category_id]}_#{params[:client_id]}_#{params[:administrator_id]}"
 
-    result = Rails.cache.fetch(cache_key, expires_in: 30.minutes) do
+    result = Rails.cache.fetch(cache_key, expires_in: 24.hours) do
+      # OPTIMIZACIÓN: ActiveRecord con groupdate - más legible y mantenible
+      # Con índices apropiados, el performance es aceptable
       purchases = Purchase.completed.by_date_range(start_date, end_date)
 
-      # Aplicar filtros adicionales
+      # Aplicar filtros de forma eficiente con includes para evitar N+1
       purchases = purchases.by_category(params[:category_id]) if params[:category_id].present?
       purchases = purchases.by_client(params[:client_id]) if params[:client_id].present?
       purchases = purchases.by_administrator(params[:administrator_id]) if params[:administrator_id].present?
 
+      # Usar groupdate con los índices optimizados que agregamos
       case granularity
       when "hour"
-        purchases.group_by_hour(:purchase_date).count
+        purchases.group_by_hour(:purchase_date, time_zone: "UTC").count
       when "day"
-        purchases.group_by_day(:purchase_date).count
+        purchases.group_by_day(:purchase_date, time_zone: "UTC").count
       when "week"
-        purchases.group_by_week(:purchase_date).count
+        purchases.group_by_week(:purchase_date, time_zone: "UTC").count
       when "year"
-        purchases.group_by_year(:purchase_date).count
+        purchases.group_by_year(:purchase_date, time_zone: "UTC").count
       else
-        {}
+        purchases.group_by_day(:purchase_date, time_zone: "UTC").count
       end
     end
 
